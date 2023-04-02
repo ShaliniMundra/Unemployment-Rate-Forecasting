@@ -1,0 +1,88 @@
+Pythod code to implement LSTM model:
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('https://raw.githubusercontent.com/Sayak7873/hybrid-model-on-european-unemployment-rate/master/Germany/germany.csv',index_col='DATE',parse_dates=True)
+df.index.freq='MS'
+df.head()
+
+from statsmodels.graphics.tsaplots import plot_acf,plot_pacf
+import statsmodels.api as sm
+
+#To plot ACF and PACF
+fig, ax = plt.subplots(nrows=2, figsize=(8, 6))
+sm.graphics.tsa.plot_acf(df,ax=ax[0])
+sm.graphics.tsa.plot_pacf(df,ax=ax[1], lags = 10)
+plt.show()
+
+#Splitting the time series dataset into training and testing dates
+train_dates = df.iloc[:234]
+test_dates = df.iloc[234:]
+
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+scaler.fit(train_dates)
+scaler.fit(test_dates)
+scaled_train_dates = scaler.transform(train_dates)
+scaled_test_dates = scaler.transform(test_dates)
+scaled_train_dates[:10]
+
+
+from keras.preprocessing.sequence import TimeseriesGenerator
+
+n_input = 12
+n_features = 1
+generated_batches = TimeseriesGenerator(scaled_train_dates, scaled_test_dates, length=n_input, batch_size=1)
+
+
+#To bulit LSTM
+
+from keras.layers import LSTM
+from keras.models import Sequential
+from keras.layers import Dense
+
+lstm_model = Sequential()
+
+
+lstm_model = Sequential()
+lstm_model.add(LSTM(100, activation='relu', input_shape=(n_input, n_features)))
+lstm_model.add(Dense(1))
+
+lstm_model.compile(optimizer='adam', loss='mse') #To compile the sequential time series model.
+
+lstm_model.summary()
+lstm_model.fit(generated_batches,epochs=100)
+
+prediction_result = []
+
+test_batches = scaled_train_dates[-n_input:]
+reshaping_batches = test_batches.reshape((1, n_input, n_features))
+
+
+for i in range(len(test_dates)):
+
+    predicted_output = lstm_model.predict(reshaping_batches )[0]
+
+    prediction_result.append(predicted_output) 
+
+    reshaping_batches = np.append(reshaping_batches [:,1:,:],[[predicted_output]],axis=1)
+
+
+#To check the predicted result
+prediction_result
+
+#To plot the line graph, execute this code snippet:
+actual_values = scaler.inverse_transform(prediction_result)
+test_dates['Predictions'] = actual_values
+test_dates.plot(figsize=(14,5))
+
+
+
+
+
+
+
+
+
