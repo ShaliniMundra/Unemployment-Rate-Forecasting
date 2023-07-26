@@ -1,12 +1,5 @@
-FRED Graph Observations,
-Federal Reserve Economic Data,
-Link: https://fred.stlouisfed.org,
-Help: https://fredhelp.stlouisfed.org,
-Economic Research Division,
-Federal Reserve Bank of St. Louis,
-,
 SLUEM1524ZSIND,"Youth Unemployment Rate for India, Percent, Annual, Not Seasonally Adjusted"
-,
+
 Frequency: Annual,
 observation_date,SLUEM1524ZSIND
 1991-01-01,11.8750000000000
