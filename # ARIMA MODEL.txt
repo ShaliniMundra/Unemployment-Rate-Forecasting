@@ -1,22 +1,121 @@
-# ARIMA MODEL
-
-c=data.frame(read.csv("germany.csv"))
-
-train=c[1:432,2]
-test1= c[433:444,2]
-test2= c[433:456,2]
-test3= c[433:468,2]
-
+library(tseries)
 library(forecast)
-mymodel=auto.arima(ts(train))
-mymodel
+library(Metrics)
+library(ggplot2)
+library(feasts)
+library(readr)
+library(WaveletArima)
+library(caret)
+library(nnfor)
+library(tsDyn)
+library(fracdiff)
+library(bsts)
+library(forecastHybrid)
+library(e1071)
+library(tseriesChaos)
+library(pracma)
+library(Kendall)
+library(nonlinearTseries)
+library(GeneCycle)
+library(fpp2)
+##########################################################################################################
+
+data=read.csv("C:/Users/HP/Downloads/SLUEM1524ZSIND.csv", header=T,stringsAsFactors=T, )##Read the data
+data
+
+plot(data)
+str(data)
+datats=ts(data$SLUEM1524ZSIND)
+
+################### Creating train and test set ################################################
+train = window(datats, start = 1, end=20) #define training data
+test = window(datats, start= 21,end=31) #define test data
+test
+#plot time series with training and test period
+autoplot(ts(train))+ggtitle('Rates vs Years')+ylab('Unemployment Rates')+xlab('Years')+autolayer(ts(test))
+
+
+###############################################################################################
 
 
 
-forecast1=data.frame(forecast(mymodel,h=12))
-forecast2=data.frame(forecast(mymodel,h=24))
-forecast3=data.frame(forecast(mymodel,h=36))
+acf(train)
+pacf(train)
+adf.test(train)
+mod=auto.arima(train, ic="bic", trace=T)
 
-accuracy(test1,forecast1[,1])
-accuracy(test2,forecast2[,1])
-accuracy(test3,forecast3[,1])
+########## ACF & PACF plots #############################################
+diffset = diff(train, differences = ndiffs(train))#diffcase=ndiffs(train)
+ggAcf(diffset) +geom_point(color = 'navy blue') +ggtitle("ACF plot")
+ggPacf(train) +geom_point(color = 'navy blue') +ggtitle("PACF plot")
+
+
+kpss.test(train) 
+adf.test(train)##augmented-Dickky_fuller test
+
+nonlinearityTest(train, verbose = TRUE)
+***********************************************************************ARIMA Model**********************************************************************************
+################## fitting ARIMA model  ######################
+fitARIMA = auto.arima(train, ic="aic", trace=T) 
+summary(fitARIMA)
+
+res_ARIMA=residuals(fitARIMA)##Residuals
+ARIMA_fit=train-res_ARIMA  ###Fitted values
+ts.plot(train)  ###Plot of original time series
+points(ARIMA_fit, type="l", col=2, lty=2) ###Plot of fitted values
+predARIMA = forecast::forecast(fitARIMA,h=10)  ###Forecast the values
+plot(predARIMA)  ##Plotting the forecast
+
+a1<-forecast::accuracy(predARIMA, test);a1
+smape(test,predARIMA$mean)
+
+***********************************************************************ARNN Model**********************************************************************************
+##################fitting ARNN model  ######################
+fit_ARNN = nnetar(train, ic = "aic", trace=T)
+summary(fit_ARNN)
+
+res_ARNN=residuals(fit_ARNN)##Residuals
+ARNN_fit=train-res_ARNN  ###Fitted values
+ts.plot(train)  ###Plot of original time series
+points(ARNN_fit, type="l", col=2, lty=2) ###Plot of fitted values
+predARNN = forecast::forecast(fit_ARNN,h=10)  ###Forecast the values
+plot(predARNN)  ##Plotting the forecast
+
+a1<-forecast::accuracy(predARNN, test);a1
+smape(test,predARNN$mean)
+
+
+***********************************************************************ARIMA-ARNN Model**********************************************************************************
+##################fitting ARIMA model  ######################
+fitARIMA = auto.arima(train, ic="aic", trace=T) 
+fitARIMA
+summary(fitARIMA)
+res_ARIMA=residuals(fitARIMA)##Residuals
+
+######################Fitting ARNN Model####################
+fit_ARNN = nnetar(ts(train))
+fit_ARNN
+summary(fit_ARNN)
+res_ARNN=residuals(fit_ARNN)##Residuals
+
+predARIMA = forecast::forecast(fitARIMA,h=10)
+forecast1 = data.frame(forecast::forecast(fitARIMA,h=10)) #predicted value of ARIMA
+class(forecast1)
+
+predARNN = forecast::forecast(fit_ARNN,h=10)
+forecast2 = data.frame(forecast::forecast(fit_ARNN,h=10)) #predicted value of ARNN
+class(forecast2)
+
+comb.forecast1 = forecast1[,1]+forecast2[,1]
+accuracy(test,comb.forecast1)
+smape(test,predARIMA$mean)
+plot(comb.forecast1)
+
+
+
+
+
+
+
+
+
